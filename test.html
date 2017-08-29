@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TEST Mauricio Vater</title>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <link rel="stylesheet" href="https://jqueryui.com/resources/demos/style.css">
+  <style>
+  #sortable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+  #sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.5em; font-size: 1.4em; height: 100%; }
+  #sortable li span { position: absolute; margin-left: -1.3em; }
+  .delete_icon { width:32px; cursor:pointer; }
+  .edit_icon { width:32px; cursor:pointer; }
+  textarea {width: 500px; height: 100px;}
+  
+  /* The Modal (background) */
+  .modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 100px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  }
+
+  /* Modal Content */
+  .modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+  }
+
+  /* The Close Button */
+  .close {
+    color: #aaaaaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+  }
+
+  .close:hover,
+  .close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  </style>
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+</head>
+<body>
+ 
+<ul id="sortable"></ul>
+<br /><br />
+
+<!-- The Modal -->
+<div id="myModal" class="modal">
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span class="close">&times;</span>
+	<form id="form1_upd" name="form1_upd" method="post" action="upd_data.php" enctype="multipart/form-data">
+		<input type="hidden" id="item_id" name="item_id" value="">
+		<b>Update Image:</b><br>
+		<input type="file" id="image_upd" name="image_upd">
+		<br /><br />
+		<b>Update Description:</b><br>
+		<textarea name="description_upd" id="description_upd" maxlength="300"></textarea>
+		<br /><br />
+		<input type="submit" value="UPDATE ITEM">
+		<span id="response_1_upd"></span>
+	</form>
+  </div>
+</div>
+
+<span id="cant_items"></span> 
+<br /><br />
+
+<form id="form1" name="form1" method="post" action="save_data.php" enctype="multipart/form-data">
+	<b>Image:</b><br>
+	<input type="file" id="image" name="image">
+	<br /><br />
+	<b>Description:</b><br>
+	<textarea name="description" id="description" maxlength="300"></textarea>
+	<br /><br />
+	<input type="submit" value="ADD ITEM">
+	<span id="response_1"></span>
+</form>
+<script>
+$( function() {
+    $( "#sortable" ).sortable();
+    $( "#sortable" ).disableSelection();
+	
+	
+	$("#form1").unbind('submit').bind('submit', function() {
+		var form = $(this);
+
+		var description = $("#description").val();
+		var file2 = document.getElementById("image");
+		var image = file2.files[0];
+
+		if(description && image) {
+
+			$.ajax({
+			  url : form.attr('action'),
+			  type : form.attr('method'),
+			  data : new FormData(form[0]),
+			  dataType : 'html',
+			  processData: false, 
+			  contentType: false,
+			  success:function(response){
+				alert(response);
+				$('#sortable').fadeOut(800, function(){
+					$("#sortable").empty();
+					OnloadFunction();
+					$('#sortable').fadeIn().delay(2000);
+				});
+			  }
+			});
+		}
+		else
+		{
+			alert("Please upload an image and a description.");
+		}
+		return false;
+	});
+  } );  
+  
+  
+
+function OnloadFunction ()
+{
+    var xhr = new XMLHttpRequest();
+	//NOTE: please change the localhost url with your domain test server.
+	xhr.open("GET", "http://localhost:8080/test/giveme_data.php?get_rows=json", false);
+	xhr.onload = function(){
+		if(xhr.status == 200)
+		{
+			var json_string = xhr.responseText;
+			var json = JSON.parse(json_string);
+		
+			var d, i;			
+			
+			for (i = 0; i < json.rows.length; i++) {
+			  d = json.rows[i];
+			  $('#sortable').append("<li class='ui-state-default'><span class='ui-icon ui-icon-arrowthick-2-n-s'></span><img src='images/"+d.image+"'/><p class=''>"+d.description+"</p><img src='images/edit.png' class='edit_icon' id='edit_item_"+d.id+"' onClick='editItem("+d.id+")'><img src='images/delete.png' class='delete_icon' id='delete_item' onClick='deleteItem("+d.id+")'></li>");
+			}
+		
+		}
+		else if(xhr.status == 404)
+		{
+			alert("Connection problems.");
+		}
+		else
+		{
+			alert("Connection problems.");
+		}
+	}
+	xhr.send();
+	
+	var numItems = $('.ui-state-default').length;
+	$("#cant_items").text("Items on List: "+numItems);
+}
+
+
+$(document).ready(OnloadFunction);
+
+
+function deleteItem(id){
+	$.ajax({
+	  url : "del_item.php",
+	  type : "POST",
+	  data : "id="+id,
+	  success:function(response){
+		alert(response);
+		$('#sortable').fadeOut(800, function(){
+			$("#sortable").empty();
+			OnloadFunction();
+			$('#sortable').fadeIn().delay(2000);
+		});
+	  }
+	});
+}
+
+
+function editItem(id){
+
+	var modal = document.getElementById('myModal');
+	var btn = document.getElementById("edit_item_"+id);
+	var span = document.getElementsByClassName("close")[0];
+
+	modal.style.display = "block";
+
+	span.onclick = function() {
+		modal.style.display = "none";
+	}
+
+	// When the user clicks anywhere outside of the modal, close it
+	window.onclick = function(event) {
+		if (event.target == modal) {
+			modal.style.display = "none";
+		}
+	}
+	
+	$('#item_id').val(id);
+	
+	$("#form1_upd").unbind('submit').bind('submit', function() {
+		var form = $(this);
+		
+		var item_id = $("#item_id").val();
+		var description = $("#description_upd").val();
+		var file2 = document.getElementById("image_upd");
+		var image = file2.files[0];
+
+		if(description && image) {
+
+			$.ajax({
+			  url : form.attr('action'),
+			  type : form.attr('method'),
+			  data : new FormData(form[0]),
+			  dataType : 'html',
+			  processData: false, 
+			  contentType: false,
+			  success:function(response){
+				modal.style.display = "none";
+				alert(response);
+				$('#sortable').fadeOut(800, function(){
+					$("#sortable").empty();
+					OnloadFunction();
+					$('#sortable').fadeIn().delay(2000);
+				});
+			  }
+			});
+		}
+		else
+		{
+			alert("Please upload an image and a description.");
+		}
+		return false;
+	});
+}
+</script> 
+</body>
+</html>
